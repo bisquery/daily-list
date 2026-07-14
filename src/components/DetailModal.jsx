@@ -1,17 +1,49 @@
 import React from 'react';
 import { X, ExternalLink, MapPin, Calendar, Clock, BookOpen, Film, Gamepad2, AlertCircle } from 'lucide-react';
 
+import iconMakan from '../assets/icon_makan.jpg';
+import iconWisata from '../assets/icon_wisata.jpg';
+import iconRoblox from '../assets/icon_roblox.jpg';
+import iconKomik from '../assets/icon_komik.jpg';
+import iconFilm from '../assets/icon_film.jpg';
+
 export default function DetailModal({ item, onClose }) {
   if (!item) return null;
 
   const getCategoryName = (category) => {
     switch (category) {
-      case 'makan': return 'Tempat Makan 🍽️';
-      case 'wisata': return 'Tempat Wisata 🌍';
-      case 'roblox': return 'Roblox Game 🎮';
-      case 'komik': return 'Daftar Komik 📚';
-      case 'film': return 'Daftar Film 🎬';
-      default: return 'Detail Item';
+      case 'makan':
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <img src={iconMakan} alt="" className="detail-badge-icon" /> Tempat Makan
+          </span>
+        );
+      case 'wisata':
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <img src={iconWisata} alt="" className="detail-badge-icon" /> Tempat Wisata
+          </span>
+        );
+      case 'roblox':
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <img src={iconRoblox} alt="" className="detail-badge-icon" /> Roblox Game
+          </span>
+        );
+      case 'komik':
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <img src={iconKomik} alt="" className="detail-badge-icon" /> Daftar Komik
+          </span>
+        );
+      case 'film':
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <img src={iconFilm} alt="" className="detail-badge-icon" /> Daftar Film
+          </span>
+        );
+      default:
+        return 'Detail Item';
     }
   };
 

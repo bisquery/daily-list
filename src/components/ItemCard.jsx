@@ -1,14 +1,20 @@
 import React from 'react';
 import { Edit2, Trash2, MapPin, Gamepad2, BookOpen, Film, Image as ImageIcon, CheckCircle, Clock } from 'lucide-react';
 
+import iconMakan from '../assets/icon_makan.jpg';
+import iconWisata from '../assets/icon_wisata.jpg';
+import iconRoblox from '../assets/icon_roblox.jpg';
+import iconKomik from '../assets/icon_komik.jpg';
+import iconFilm from '../assets/icon_film.jpg';
+
 export default function ItemCard({ item, onToggleStatus, onEdit, onDelete, onClick }) {
   const getCategoryIcon = (category) => {
     switch (category) {
-      case 'makan': return '🍽️';
-      case 'wisata': return '🌍';
-      case 'roblox': return '🎮';
-      case 'komik': return '📚';
-      case 'film': return '🎬';
+      case 'makan': return <img src={iconMakan} alt="" className="item-category-icon-img" />;
+      case 'wisata': return <img src={iconWisata} alt="" className="item-category-icon-img" />;
+      case 'roblox': return <img src={iconRoblox} alt="" className="item-category-icon-img" />;
+      case 'komik': return <img src={iconKomik} alt="" className="item-category-icon-img" />;
+      case 'film': return <img src={iconFilm} alt="" className="item-category-icon-img" />;
       default: return '📁';
     }
   };

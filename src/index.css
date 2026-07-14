@@ -983,3 +983,44 @@ input:focus, textarea:focus, select:focus {
 .btn-accent-outline:active {
   background-color: var(--accent-glow);
 }
+
+/* Custom Category Bunny Icons */
+.category-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.feed-title-icon-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.empty-icon-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  object-fit: cover;
+  opacity: 0.4;
+  margin: 0 auto;
+}
+
+.item-category-icon-img {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  object-fit: cover;
+  vertical-align: middle;
+  margin-right: 6px;
+  display: inline-block;
+}
+
+.detail-badge-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  object-fit: cover;
+}

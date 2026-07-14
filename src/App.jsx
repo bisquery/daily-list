@@ -22,6 +22,12 @@ import ItemCard from './components/ItemCard';
 import AddItemModal from './components/AddItemModal';
 import DetailModal from './components/DetailModal';
 
+import iconMakan from './assets/icon_makan.jpg';
+import iconWisata from './assets/icon_wisata.jpg';
+import iconRoblox from './assets/icon_roblox.jpg';
+import iconKomik from './assets/icon_komik.jpg';
+import iconFilm from './assets/icon_film.jpg';
+
 export default function App() {
   // Navigation states: 'home', 'feed', 'settings'
   const [currentTab, setCurrentTab] = useState('home');
@@ -296,12 +302,12 @@ export default function App() {
 
   const getCategoryDetails = (catKey) => {
     switch(catKey) {
-      case 'makan': return { title: 'Tempat Makan', icon: '🍽️', color: 'var(--color-makan)' };
-      case 'wisata': return { title: 'Wisata & Kunjungan', icon: '🌍', color: 'var(--color-wisata)' };
-      case 'roblox': return { title: 'Roblox Games', icon: '🎮', color: 'var(--color-roblox)' };
-      case 'komik': return { title: 'Daftar Komik', icon: '📚', color: 'var(--color-komik)' };
-      case 'film': return { title: 'Daftar Film', icon: '🎬', color: 'var(--color-film)' };
-      default: return { title: 'Arsip', icon: '📁', color: 'var(--accent)' };
+      case 'makan': return { title: 'Tempat Makan', icon: iconMakan, color: 'var(--color-makan)' };
+      case 'wisata': return { title: 'Wisata & Kunjungan', icon: iconWisata, color: 'var(--color-wisata)' };
+      case 'roblox': return { title: 'Roblox Games', icon: iconRoblox, color: 'var(--color-roblox)' };
+      case 'komik': return { title: 'Daftar Komik', icon: iconKomik, color: 'var(--color-komik)' };
+      case 'film': return { title: 'Daftar Film', icon: iconFilm, color: 'var(--color-film)' };
+      default: return { title: 'Arsip', icon: null, color: 'var(--accent)' };
     }
   };
 
@@ -433,7 +439,11 @@ export default function App() {
                   onClick={() => openCategoryFeed(catKey)}
                 >
                   <div className="category-icon-wrapper">
-                    {details.icon}
+                    {details.icon ? (
+                      <img src={details.icon} alt="" className="category-icon-img" />
+                    ) : (
+                      '📁'
+                    )}
                   </div>
                   <div className="category-details">
                     <span className="category-name">{details.title}</span>
@@ -464,7 +474,12 @@ export default function App() {
               </button>
               <div className="feed-title-wrapper">
                 <span className="feed-title">
-                  {details.icon} {details.title}
+                  {details.icon ? (
+                    <img src={details.icon} alt="" className="feed-title-icon-img" />
+                  ) : (
+                    '📁'
+                  )}
+                  {details.title}
                 </span>
                 <span className="feed-count">
                   {items.filter(i => i.category === selectedCategory).length} total item
@@ -492,7 +507,13 @@ export default function App() {
             <div className="feed-list">
               {filteredItems.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-icon">{details.icon}</div>
+                  <div className="empty-icon">
+                    {details.icon ? (
+                      <img src={details.icon} alt="" className="empty-icon-img" />
+                    ) : (
+                      '📁'
+                    )}
+                  </div>
                   <h3 className="empty-text">Daftar Masih Kosong</h3>
                   <p className="empty-subtext">
                     Belum ada item di tab ini. Ketuk tombol + di bawah untuk menambah.
