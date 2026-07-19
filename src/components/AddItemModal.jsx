@@ -17,6 +17,11 @@ export default function AddItemModal({ category, editItem, onClose, onSave }) {
   const [errorMsg, setErrorMsg] = useState('');
   const fileInputRef = useRef(null);
 
+  const [startDate, setStartDate] = useState('');
+  const [finalImage, setFinalImage] = useState('');
+  const [isCompressingFinal, setIsCompressingFinal] = useState(false);
+  const finalFileInputRef = useRef(null);
+
   // Initialize form if editing
   useEffect(() => {
     if (editItem) {
@@ -28,6 +33,8 @@ export default function AddItemModal({ category, editItem, onClose, onSave }) {
       setLink(editItem.link || '');
       setSynopsis(editItem.synopsis || '');
       setReleaseYear(editItem.releaseYear || '');
+      setStartDate(editItem.startDate || '');
+      setFinalImage(editItem.finalImage || '');
     } else {
       // Clear form for new item
       setName('');
@@ -38,6 +45,8 @@ export default function AddItemModal({ category, editItem, onClose, onSave }) {
       setLink('');
       setSynopsis('');
       setReleaseYear('');
+      setStartDate(new Date().toISOString().slice(0, 10)); // Default to today
+      setFinalImage('');
     }
     setErrorMsg('');
   }, [editItem, category]);
@@ -102,6 +111,63 @@ export default function AddItemModal({ category, editItem, onClose, onSave }) {
     reader.readAsDataURL(file);
   };
 
+  const handleFinalImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('File hasil akhir harus berupa gambar');
+      return;
+    }
+
+    setIsCompressingFinal(true);
+    setErrorMsg('');
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        setFinalImage(dataUrl);
+        setIsCompressingFinal(false);
+      };
+      img.onerror = () => {
+        setErrorMsg('Gagal memuat gambar hasil akhir');
+        setIsCompressingFinal(false);
+      };
+      img.src = event.target.result;
+    };
+    reader.onerror = () => {
+      setErrorMsg('Gagal membaca file hasil akhir');
+      setIsCompressingFinal(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSave = (e) => {
     e.preventDefault();
 
@@ -128,6 +194,8 @@ export default function AddItemModal({ category, editItem, onClose, onSave }) {
       link: ['roblox', 'komik', 'film'].includes(category) ? link.trim() : undefined,
       synopsis: ['komik', 'film'].includes(category) ? synopsis.trim() : undefined,
       releaseYear: category === 'film' ? releaseYear.trim() : undefined,
+      startDate: category === 'hobi' ? startDate : undefined,
+      finalImage: category === 'hobi' ? finalImage : undefined,
     };
 
     onSave(payload);
@@ -158,7 +226,7 @@ export default function AddItemModal({ category, editItem, onClose, onSave }) {
 
           {/* Image Upload Area */}
           <div className="form-group">
-            <label>Gambar Item *</label>
+            <label>{category === 'hobi' ? 'Gambar Referensi *' : 'Gambar Item *'}</label>
             <input 
               type="file" 
               ref={fileInputRef} 
@@ -301,6 +369,53 @@ export default function AddItemModal({ category, editItem, onClose, onSave }) {
             </>
           )}
 
+          {category === 'hobi' && (
+            <>
+              <div className="form-group">
+                <label htmlFor="project-start-date">Tanggal Mulai Proyek *</label>
+                <input
+                  id="project-start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Gambar Hasil Akhir (Opsional)</label>
+                <input 
+                  type="file" 
+                  ref={finalFileInputRef} 
+                  onChange={handleFinalImageChange} 
+                  accept="image/*" 
+                  style={{ display: 'none' }} 
+                />
+
+                {finalImage ? (
+                  <div className="image-upload-area" style={{ borderStyle: 'solid' }}>
+                    <img src={finalImage} alt="Final Preview" className="uploaded-preview" />
+                    <button type="button" className="remove-upload-btn" onClick={() => setFinalImage('')} title="Hapus Gambar Hasil Akhir">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="image-upload-area" onClick={() => finalFileInputRef.current?.click()}>
+                    {isCompressingFinal ? (
+                      <span className="upload-text">Memproses gambar...</span>
+                    ) : (
+                      <>
+                        <Camera className="upload-icon" />
+                        <span className="upload-text">Upload Gambar Hasil Akhir</span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Ketuk jika proyek sudah selesai</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
           {/* Personal Note Field */}
           <div className="form-group">
             <label htmlFor="item-note">Catatan Pribadi (Opsional)</label>
@@ -313,7 +428,7 @@ export default function AddItemModal({ category, editItem, onClose, onSave }) {
             />
           </div>
 
-          <button type="submit" className="form-submit-btn" disabled={isCompressing}>
+          <button type="submit" className="form-submit-btn" disabled={isCompressing || isCompressingFinal}>
             {editItem ? 'Simpan Perubahan' : 'Tambah Ke Daftar'}
           </button>
         </form>

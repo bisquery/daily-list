@@ -6,6 +6,7 @@ import iconWisata from '../assets/icon_wisata.jpg';
 import iconRoblox from '../assets/icon_roblox.jpg';
 import iconKomik from '../assets/icon_komik.jpg';
 import iconFilm from '../assets/icon_film.jpg';
+import iconHobi from '../assets/icon_hobi.jpg';
 
 export default function DetailModal({ item, onClose }) {
   if (!item) return null;
@@ -40,6 +41,12 @@ export default function DetailModal({ item, onClose }) {
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <img src={iconFilm} alt="" className="detail-badge-icon" /> Daftar Film
+          </span>
+        );
+      case 'hobi':
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <img src={iconHobi} alt="" className="detail-badge-icon" /> Proyek Hobi
           </span>
         );
       default:
@@ -149,6 +156,37 @@ export default function DetailModal({ item, onClose }) {
           </>
         );
 
+      case 'hobi':
+        const formattedStartDate = item.startDate 
+          ? new Date(item.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+          : 'Tidak ditentukan';
+        return (
+          <>
+            <div className="detail-section">
+              <span className="detail-section-title">Tanggal Mulai Proyek</span>
+              <span className="detail-section-content" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Calendar size={14} /> {formattedStartDate}
+              </span>
+            </div>
+            
+            <div className="detail-section" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <span className="detail-section-title">Visualisasi Proyek</span>
+              <div style={{ display: 'grid', gridTemplateColumns: item.finalImage ? '1fr 1fr' : '1fr', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Referensi:</span>
+                  <img src={item.image} alt="Referensi" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '12px', border: '1px solid var(--border-color)' }} />
+                </div>
+                {item.finalImage && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Hasil Akhir:</span>
+                    <img src={item.finalImage} alt="Hasil Akhir" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '12px', border: '1px solid var(--border-color)' }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        );
+
       default:
         return null;
     }
@@ -169,7 +207,9 @@ export default function DetailModal({ item, onClose }) {
         </div>
 
         <div className="modal-body">
-          {item.image ? (
+          {item.category === 'hobi' && item.finalImage ? (
+            <img src={item.finalImage} alt={item.name} className="detail-image" />
+          ) : item.image ? (
             <img src={item.image} alt={item.name} className="detail-image" />
           ) : (
             <div className="item-image-placeholder" style={{ height: '180px', borderRadius: '16px' }}>

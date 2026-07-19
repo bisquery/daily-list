@@ -5,35 +5,40 @@
   
   /* DEFAULT DARK MODE */
   --bg-main: #0b0f19;
-  --bg-card: #141b2d;
-  --bg-card-hover: #1e2640;
+  --bg-card: #162035;          /* Lighter surface for elevation depth */
+  --bg-card-hover: #222d4a;    /* Distinct hover state */
   --border-color: rgba(255, 255, 255, 0.08);
   
   --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-secondary: #a2b2c8;  /* Enhanced AA-contrast text color */
+  --text-muted: #6b7c96;
   
-  --accent: #6366f1;
-  --accent-glow: rgba(99, 102, 241, 0.15);
+  --accent: #818cf8;          /* Softer pastel accent for dark mode */
+  --accent-glow: rgba(129, 140, 248, 0.15);
   --header-bg: rgba(11, 15, 25, 0.85);
-  --nav-bg: rgba(20, 27, 45, 0.95);
+  --nav-bg: rgba(22, 32, 53, 0.95);
   --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   --modal-overlay-bg: rgba(0, 0, 0, 0.75);
   --input-bg: rgba(255, 255, 255, 0.04);
   --input-border: rgba(255, 255, 255, 0.08);
   --input-focus-bg: rgba(255, 255, 255, 0.08);
   
-  /* Category Colors (Remains vivid in both modes) */
-  --color-makan: #f97316; /* 🍽️ Warm Orange */
-  --color-wisata: #10b981; /* 🌍 Emerald Green */
-  --color-roblox: #06b6d4; /* 🎮 Roblox Cyan */
-  --color-komik: #ec4899; /* 📚 Comic Pink */
-  --color-film: #eab308; /* 🎬 Movie Gold */
+  /* Category Colors (Soft Pastel for Dark Mode) */
+  --color-makan: #f0a36e;     /* Soft peach */
+  --color-wisata: #6adbb5;    /* Soft mint */
+  --color-roblox: #68d4e8;    /* Soft cyan */
+  --color-komik: #f29cb9;     /* Soft pink */
+  --color-film: #ecd06b;      /* Soft gold */
+  --color-hobi: #a797eb;      /* Soft lavender */
   
   /* Status Colors */
   --color-pending: #f59e0b;
   --color-done: #10b981;
   --color-danger: #ef4444;
+
+  /* Progress Card Colors */
+  --progress-card-bg: linear-gradient(135deg, var(--bg-card) 0%, rgba(20, 27, 45, 0.8) 100%);
+  --progress-bar-bg: rgba(255, 255, 255, 0.06);
   
   --max-width: 480px;
 }
@@ -58,6 +63,18 @@
   --input-bg: rgba(15, 23, 42, 0.02);
   --input-border: rgba(15, 23, 42, 0.08);
   --input-focus-bg: rgba(15, 23, 42, 0.04);
+
+  /* Category Colors (Vivid & high-contrast for Light Mode) */
+  --color-makan: #e65f00;
+  --color-wisata: #059669;
+  --color-roblox: #0891b2;
+  --color-komik: #db2777;
+  --color-film: #d97706;
+  --color-hobi: #7c3aed;
+  
+  /* Progress Card Colors (Light Theme) */
+  --progress-card-bg: linear-gradient(135deg, var(--bg-card) 0%, rgba(99, 102, 241, 0.04) 100%);
+  --progress-bar-bg: rgba(15, 23, 42, 0.06);
 }
 
 /* Base resets */
@@ -355,6 +372,13 @@ input:focus, textarea:focus, select:focus {
   position: relative;
   overflow: hidden;
   box-shadow: var(--card-shadow);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.category-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--cat-color);
+  box-shadow: var(--card-shadow), 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .category-card::before {
@@ -365,11 +389,17 @@ input:focus, textarea:focus, select:focus {
   width: 5px;
   height: 100%;
   background-color: var(--cat-color);
+  transition: all 0.3s ease;
+}
+
+.category-card:hover::before {
+  width: 8px;
 }
 
 .category-card:active {
-  transform: scale(0.98);
+  transform: scale(0.97) translateY(0);
   background-color: var(--bg-card-hover);
+  transition: all 0.1s ease;
 }
 
 .category-icon-wrapper {
@@ -383,6 +413,13 @@ input:focus, textarea:focus, select:focus {
   font-size: 1.6rem;
   margin-right: 18px;
   border: 1px solid var(--border-color);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.category-card:hover .category-icon-wrapper {
+  transform: scale(1.08) rotate(-3deg);
+  border-color: var(--cat-color);
+  background-color: var(--bg-card-hover);
 }
 
 .category-details {
@@ -394,6 +431,11 @@ input:focus, textarea:focus, select:focus {
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--text-primary);
+  transition: color 0.3s ease;
+}
+
+.category-card:hover .category-name {
+  color: var(--cat-color);
 }
 
 .category-count {
@@ -405,6 +447,12 @@ input:focus, textarea:focus, select:focus {
 
 .category-arrow {
   color: var(--text-muted);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.category-card:hover .category-arrow {
+  transform: translateX(4px);
+  color: var(--cat-color);
 }
 
 /* FEED HEADER & TABS */
@@ -922,6 +970,24 @@ input:focus, textarea:focus, select:focus {
   box-shadow: var(--card-shadow);
 }
 
+.btn-makan { background-color: var(--color-makan); color: white; }
+.btn-makan:active { background-color: var(--color-makan); opacity: 0.9; }
+
+.btn-wisata { background-color: var(--color-wisata); color: white; }
+.btn-wisata:active { background-color: var(--color-wisata); opacity: 0.9; }
+
+.btn-roblox { background-color: var(--color-roblox); color: white; }
+.btn-roblox:active { background-color: var(--color-roblox); opacity: 0.9; }
+
+.btn-komik { background-color: var(--color-komik); color: white; }
+.btn-komik:active { background-color: var(--color-komik); opacity: 0.9; }
+
+.btn-film { background-color: var(--color-film); color: white; }
+.btn-film:active { background-color: var(--color-film); opacity: 0.9; }
+
+.btn-hobi { background-color: var(--color-hobi); color: white; }
+.btn-hobi:active { background-color: var(--color-hobi); opacity: 0.9; }
+
 /* Settings & Backup styling */
 .settings-container {
   padding: 24px 20px 90px 20px;
@@ -1024,3 +1090,145 @@ input:focus, textarea:focus, select:focus {
   border-radius: 4px;
   object-fit: cover;
 }
+
+/* SEARCH BAR ON DASHBOARD */
+.search-container {
+  position: relative;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  padding: 14px 16px 14px 44px;
+  font-size: 0.95rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  color: var(--text-primary);
+  box-shadow: var(--card-shadow);
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+  background-color: var(--bg-card-hover);
+  box-shadow: 0 0 0 3px var(--accent-glow), var(--card-shadow);
+}
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.search-clear {
+  position: absolute;
+  right: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  background-color: var(--input-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-clear:active {
+  background-color: var(--input-focus-bg);
+  transform: scale(0.9);
+}
+
+.search-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.search-results-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.search-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-bottom: 40px;
+}
+
+/* PROGRESS CARD ON DASHBOARD */
+.progress-card {
+  background: var(--progress-card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-stats {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.progress-percentage {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background-color: var(--progress-bar-bg);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, #8b5cf6 100%);
+  border-radius: 10px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-motivation {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.backup-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+
+

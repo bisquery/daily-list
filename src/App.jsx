@@ -16,7 +16,9 @@ import {
   Eye,
   EyeOff,
   Sun,
-  Moon
+  Moon,
+  Search,
+  X
 } from 'lucide-react';
 import ItemCard from './components/ItemCard';
 import AddItemModal from './components/AddItemModal';
@@ -27,11 +29,13 @@ import iconWisata from './assets/icon_wisata.jpg';
 import iconRoblox from './assets/icon_roblox.jpg';
 import iconKomik from './assets/icon_komik.jpg';
 import iconFilm from './assets/icon_film.jpg';
+import iconHobi from './assets/icon_hobi.jpg';
 
 export default function App() {
   // Navigation states: 'home', 'feed', 'settings'
   const [currentTab, setCurrentTab] = useState('home');
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Feed filtering: 'belum' (Wishlist) or 'sudah' (Arsip/Riwayat)
   const [feedStatusTab, setFeedStatusTab] = useState('belum');
@@ -61,6 +65,7 @@ export default function App() {
     roblox: { belum: 0, sudah: 0 },
     komik: { belum: 0, sudah: 0 },
     film: { belum: 0, sudah: 0 },
+    hobi: { belum: 0, sudah: 0 },
   });
 
   // Modal states
@@ -89,6 +94,45 @@ export default function App() {
     initApp();
   }, []);
 
+  // Sync React navigation/modal state with browser history (for Android physical back button)
+  useEffect(() => {
+    // Set initial history state if empty
+    if (!window.history.state) {
+      window.history.replaceState({ tab: 'home', category: null, modal: null }, '');
+    }
+
+    const handlePopState = (event) => {
+      const state = event.state || {};
+      
+      // Close or open Add/Edit modal
+      if (state.modal === 'add') {
+        setShowAddModal(true);
+      } else {
+        setShowAddModal(false);
+        setSelectedItemForEdit(null);
+      }
+
+      // Close or open Detail modal
+      if (state.modal === 'detail') {
+        setSelectedItemForDetail(state.detailItem || null);
+      } else {
+        setSelectedItemForDetail(null);
+      }
+
+      // Set current Tab and Category
+      if (state.tab) {
+        setCurrentTab(state.tab);
+        setSelectedCategory(state.category || null);
+      } else {
+        setCurrentTab('home');
+        setSelectedCategory(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Sync data and count categories
   const refreshData = async () => {
     const allItems = await db.items.toArray();
@@ -101,6 +145,7 @@ export default function App() {
       roblox: { belum: 0, sudah: 0 },
       komik: { belum: 0, sudah: 0 },
       film: { belum: 0, sudah: 0 },
+      hobi: { belum: 0, sudah: 0 },
     };
 
     allItems.forEach(item => {
@@ -191,8 +236,7 @@ export default function App() {
     } else {
       await db.items.add(payload);
     }
-    setSelectedItemForEdit(null);
-    setShowAddModal(false);
+    window.history.back();
     await refreshData();
   };
 
@@ -200,7 +244,7 @@ export default function App() {
   const handleDeleteItem = async (id) => {
     if (confirm('Apakah Anda yakin ingin menghapus item ini dari arsip?')) {
       await db.items.delete(id);
-      setSelectedItemForDetail(null);
+      window.history.back();
       await refreshData();
     }
   };
@@ -266,6 +310,140 @@ export default function App() {
     reader.readAsText(file);
   };
 
+  // Helper for CSV Export
+  const convertToCSV = (itemsList) => {
+    const headers = [
+      'name', 'category', 'status', 'createdAt', 'note', 'address', 
+      'description', 'link', 'synopsis', 'releaseYear', 'startDate', 
+      'image', 'finalImage'
+    ];
+    const csvRows = [headers.join(',')];
+
+    for (const item of itemsList) {
+      const values = headers.map(header => {
+        const val = item[header];
+        if (val === undefined || val === null) {
+          return '""';
+        }
+        // Escape double quotes by doubling them
+        const escaped = ('' + val).replace(/"/g, '""');
+        return `"${escaped}"`;
+      });
+      csvRows.push(values.join(','));
+    }
+    return csvRows.join('\n');
+  };
+
+  // Helper for CSV Import
+  const parseCSV = (csvText) => {
+    const lines = [];
+    let row = [""];
+    let inQuotes = false;
+
+    for (let i = 0; i < csvText.length; i++) {
+      const c = csvText[i];
+      const next = csvText[i+1];
+
+      if (c === '"') {
+        if (inQuotes && next === '"') {
+          row[row.length - 1] += '"';
+          i++; // Skip the escaped quote
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (c === ',' && !inQuotes) {
+        row.push("");
+      } else if ((c === '\r' || c === '\n') && !inQuotes) {
+        if (c === '\r' && next === '\n') {
+          i++;
+        }
+        lines.push(row);
+        row = [""];
+      } else {
+        row[row.length - 1] += c;
+      }
+    }
+    if (row.length > 1 || row[0] !== "") {
+      lines.push(row);
+    }
+
+    if (lines.length === 0) return [];
+    
+    const headers = lines[0].map(h => h.trim());
+    const parsedItems = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i];
+      if (values.length < headers.length) continue;
+      
+      const item = {};
+      headers.forEach((header, index) => {
+        let val = values[index];
+        if (val === '') {
+          val = undefined;
+        } else if (header === 'createdAt' || header === 'releaseYear') {
+          val = val ? parseInt(val, 10) : undefined;
+          if (isNaN(val)) val = undefined;
+        }
+        item[header] = val;
+      });
+      parsedItems.push(item);
+    }
+    return parsedItems;
+  };
+
+  // Export database as CSV file
+  const handleExportCSV = async () => {
+    try {
+      const allItems = await db.items.toArray();
+      const csvStr = convertToCSV(allItems);
+      const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `daily_list_backup_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Gagal mengekspor CSV: ' + err.message);
+    }
+  };
+
+  // Import database from CSV file
+  const handleImportCSV = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const csvText = event.target.result;
+        const importedItems = parseCSV(csvText);
+        
+        if (importedItems.length === 0) {
+          alert('Format file CSV tidak valid atau kosong!');
+          return;
+        }
+
+        if (confirm(`Anda akan mengimpor ${importedItems.length} item dari CSV. Ini akan menambah/menggabungkan dengan data yang ada sekarang. Lanjutkan?`)) {
+          for (const item of importedItems) {
+            const { id, ...cleanItem } = item;
+            await db.items.add(cleanItem);
+          }
+          alert('Data CSV berhasil diimpor!');
+          await refreshData();
+          e.target.value = null;
+        }
+      } catch (err) {
+        alert('Gagal membaca CSV: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+
   // Change or Set PIN
   const handleChangePin = async (e) => {
     e.preventDefault();
@@ -298,6 +476,8 @@ export default function App() {
   const openCategoryFeed = (catKey) => {
     setSelectedCategory(catKey);
     setCurrentTab('feed');
+    setSearchQuery('');
+    window.history.pushState({ tab: 'feed', category: catKey, modal: null }, '');
   };
 
   const getCategoryDetails = (catKey) => {
@@ -307,6 +487,7 @@ export default function App() {
       case 'roblox': return { title: 'Roblox Games', icon: iconRoblox, color: 'var(--color-roblox)' };
       case 'komik': return { title: 'Daftar Komik', icon: iconKomik, color: 'var(--color-komik)' };
       case 'film': return { title: 'Daftar Film', icon: iconFilm, color: 'var(--color-film)' };
+      case 'hobi': return { title: 'Proyek Hobi', icon: iconHobi, color: 'var(--color-hobi)' };
       default: return { title: 'Arsip', icon: null, color: 'var(--accent)' };
     }
   };
@@ -389,12 +570,49 @@ export default function App() {
     );
   }
 
+  // Calculate progress of wishlist items achieved
+  const totalItems = items.length;
+  const completedItems = items.filter(item => item.status === 'sudah').length;
+  const progressPercentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
+  const getProgressMotivation = (percentage) => {
+    if (totalItems === 0) return 'Mulai tambahkan beberapa item di wishlist Anda!';
+    if (percentage === 100) return 'Luar biasa! Semua wishlist Anda telah tercapai! 🎉';
+    if (percentage >= 75) return 'Hebat! Anda hampir mencapai semua target wishlist Anda. Teruskan! 💪';
+    if (percentage >= 50) return 'Bagus! Setengah dari wishlist Anda sudah tercapai. Selangkah lagi! 🎯';
+    if (percentage >= 25) return 'Perkembangan yang bagus! Nikmati setiap pencapaian kecil Anda. 🌟';
+    return 'Mari selesaikan wishlist pertamamu! 🚀';
+  };
+
+  // Filter items globally based on searchQuery
+  const filteredSearchItems = searchQuery.trim() === ''
+    ? []
+    : items.filter(item => {
+        const query = searchQuery.toLowerCase();
+        const details = getCategoryDetails(item.category);
+        
+        return (
+          item.name?.toLowerCase().includes(query) ||
+          item.note?.toLowerCase().includes(query) ||
+          item.address?.toLowerCase().includes(query) ||
+          item.description?.toLowerCase().includes(query) ||
+          item.link?.toLowerCase().includes(query) ||
+          item.synopsis?.toLowerCase().includes(query) ||
+          item.releaseYear?.toString().includes(query) ||
+          item.startDate?.toLowerCase().includes(query) ||
+          details?.title?.toLowerCase().includes(query)
+        );
+      });
+
   // MAIN LAYOUT RENDER
   return (
     <div className="app-container">
       {/* HEADER BAR */}
       <header className="app-header">
-        <span className="header-title">🗄️ Personal Archive</span>
+        <span className="header-title" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <img src="/favicon.png" alt="" style={{ width: '22px', height: '22px', borderRadius: '4px' }} />
+          Personal Archive
+        </span>
         <div className="header-actions">
           <button 
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -421,41 +639,128 @@ export default function App() {
       {currentTab === 'home' && (
         <div className="home-container">
           <div className="welcome-section">
-            <h1 className="welcome-title">Halo, Arsip Anda</h1>
-            <p className="welcome-subtitle">Kelola dan lihat wishlist serta riwayat pribadi Anda di satu tempat.</p>
+            <h1 className="welcome-title">Pengelola Arsip Wishlist Pribadi</h1>
+            <p className="welcome-subtitle">Khusus untuk Annisa Pertiwi</p>
           </div>
 
-          <div className="category-grid">
-            {Object.keys(counts).map((catKey) => {
-              const details = getCategoryDetails(catKey);
-              const countBelum = counts[catKey].belum;
-              const countSudah = counts[catKey].sudah;
-              
-              return (
-                <button
-                  key={catKey}
-                  className="category-card"
-                  style={{ '--cat-color': details.color }}
-                  onClick={() => openCategoryFeed(catKey)}
-                >
-                  <div className="category-icon-wrapper">
-                    {details.icon ? (
-                      <img src={details.icon} alt="" className="category-icon-img" />
-                    ) : (
-                      '📁'
-                    )}
-                  </div>
-                  <div className="category-details">
-                    <span className="category-name">{details.title}</span>
-                    <span className="category-count">
-                      {countBelum} Wishlist • {countSudah} Selesai/Arsip
-                    </span>
-                  </div>
-                  <ChevronRight size={18} className="category-arrow" />
-                </button>
-              );
-            })}
+          {/* SEARCH BAR */}
+          <div className="search-container">
+            <Search size={18} className="search-icon" />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Cari di semua kategori..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button 
+                type="button" 
+                className="search-clear" 
+                onClick={() => setSearchQuery('')}
+                title="Hapus Pencarian"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
+
+          {/* PROGRESS CARD */}
+          <div className="progress-card">
+            <div className="progress-header">
+              <span className="progress-title">Pencapaian Wishlist</span>
+              <span className="progress-percentage">{progressPercentage}%</span>
+            </div>
+            
+            <div className="progress-bar-bg">
+              <div 
+                className="progress-bar-fill" 
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="progress-motivation">
+                {getProgressMotivation(progressPercentage)}
+              </span>
+              <span className="progress-stats">
+                {completedItems}/{totalItems} Selesai
+              </span>
+            </div>
+          </div>
+
+          {searchQuery.trim() !== '' ? (
+            <div>
+              <div className="search-results-header">
+                <span className="search-results-title">
+                  Hasil Pencarian ({filteredSearchItems.length})
+                </span>
+              </div>
+
+              {filteredSearchItems.length === 0 ? (
+                <div className="empty-state" style={{ padding: '40px 10px' }}>
+                  <div className="empty-icon">🔍</div>
+                  <h3 className="empty-text">Tidak Ditemukan</h3>
+                  <p className="empty-subtext">
+                    Tidak ada hasil pencarian untuk "{searchQuery}". Coba kata kunci lain.
+                  </p>
+                </div>
+              ) : (
+                <div className="search-results-list">
+                  {filteredSearchItems.map(item => (
+                    <ItemCard
+                      key={item.id}
+                      item={item}
+                      onToggleStatus={handleToggleStatus}
+                      onEdit={(itemToEdit) => {
+                        setSelectedItemForEdit(itemToEdit);
+                        setSelectedCategory(itemToEdit.category);
+                        setShowAddModal(true);
+                        window.history.pushState({ tab: 'home', category: itemToEdit.category, modal: 'add' }, '');
+                      }}
+                      onDelete={handleDeleteItem}
+                      onClick={() => {
+                        setSelectedItemForDetail(item);
+                        window.history.pushState({ tab: 'home', category: null, modal: 'detail', detailItem: item }, '');
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="category-grid">
+              {Object.keys(counts).map((catKey) => {
+                const details = getCategoryDetails(catKey);
+                const countBelum = counts[catKey].belum;
+                const countSudah = counts[catKey].sudah;
+                
+                return (
+                  <button
+                    key={catKey}
+                    className="category-card"
+                    style={{ '--cat-color': details.color }}
+                    onClick={() => openCategoryFeed(catKey)}
+                  >
+                    <div className="category-icon-wrapper">
+                      {details.icon ? (
+                        <img src={details.icon} alt="" className="category-icon-img" />
+                      ) : (
+                        '📁'
+                      )}
+                    </div>
+                    <div className="category-details">
+                      <span className="category-name">{details.title}</span>
+                      <span className="category-count">
+                        {countBelum} Wishlist • {countSudah} Selesai/Arsip
+                      </span>
+                    </div>
+                    <ChevronRight size={18} className="category-arrow" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -469,7 +774,7 @@ export default function App() {
         return (
           <div>
             <div className="feed-header">
-              <button className="back-btn" onClick={() => setCurrentTab('home')}>
+              <button className="back-btn" onClick={() => window.history.back()}>
                 <ArrowLeft size={18} />
               </button>
               <div className="feed-title-wrapper">
@@ -528,9 +833,13 @@ export default function App() {
                     onEdit={(itemToEdit) => {
                       setSelectedItemForEdit(itemToEdit);
                       setShowAddModal(true);
+                      window.history.pushState({ tab: currentTab, category: selectedCategory, modal: 'add' }, '');
                     }}
                     onDelete={handleDeleteItem}
-                    onClick={() => setSelectedItemForDetail(item)}
+                    onClick={() => {
+                      setSelectedItemForDetail(item);
+                      window.history.pushState({ tab: currentTab, category: selectedCategory, modal: 'detail', detailItem: item }, '');
+                    }}
                   />
                 ))
               )}
@@ -540,6 +849,7 @@ export default function App() {
             <button className="fab" onClick={() => {
               setSelectedItemForEdit(null);
               setShowAddModal(true);
+              window.history.pushState({ tab: currentTab, category: selectedCategory, modal: 'add' }, '');
             }} title="Tambah Item Baru">
               <Plus size={24} />
             </button>
@@ -575,6 +885,22 @@ export default function App() {
                   type="file" 
                   accept=".json" 
                   onChange={handleImportData} 
+                  style={{ display: 'none' }} 
+                />
+              </label>
+
+              <button className="btn-accent-outline" onClick={handleExportCSV}>
+                <FileDown size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                Ekspor CSV
+              </button>
+              
+              <label className="btn-accent-outline file-upload-label" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileUp size={14} style={{ marginRight: '6px' }} />
+                Impor CSV
+                <input 
+                  type="file" 
+                  accept=".csv" 
+                  onChange={handleImportCSV} 
                   style={{ display: 'none' }} 
                 />
               </label>
@@ -632,6 +958,8 @@ export default function App() {
           onClick={() => {
             setSelectedCategory(null);
             setCurrentTab('home');
+            setSearchQuery('');
+            window.history.pushState({ tab: 'home', category: null, modal: null }, '');
           }}
         >
           <Home size={20} />
@@ -640,7 +968,11 @@ export default function App() {
 
         <button 
           className={`nav-item ${currentTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setCurrentTab('settings')}
+          onClick={() => {
+            setCurrentTab('settings');
+            setSearchQuery('');
+            window.history.pushState({ tab: 'settings', category: null, modal: null }, '');
+          }}
         >
           <SettingsIcon size={20} />
           <span>Pengaturan</span>
@@ -653,8 +985,7 @@ export default function App() {
           category={selectedCategory}
           editItem={selectedItemForEdit}
           onClose={() => {
-            setShowAddModal(false);
-            setSelectedItemForEdit(null);
+            window.history.back();
           }}
           onSave={handleSaveItem}
         />
@@ -664,7 +995,7 @@ export default function App() {
       {selectedItemForDetail && (
         <DetailModal
           item={selectedItemForDetail}
-          onClose={() => setSelectedItemForDetail(null)}
+          onClose={() => window.history.back()}
         />
       )}
     </div>

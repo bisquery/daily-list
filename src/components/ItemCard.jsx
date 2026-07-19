@@ -1,11 +1,12 @@
 import React from 'react';
-import { Edit2, Trash2, MapPin, Gamepad2, BookOpen, Film, Image as ImageIcon, CheckCircle, Clock } from 'lucide-react';
+import { Edit2, Trash2, MapPin, Gamepad2, BookOpen, Film, Image as ImageIcon, CheckCircle, Clock, Calendar } from 'lucide-react';
 
 import iconMakan from '../assets/icon_makan.jpg';
 import iconWisata from '../assets/icon_wisata.jpg';
 import iconRoblox from '../assets/icon_roblox.jpg';
 import iconKomik from '../assets/icon_komik.jpg';
 import iconFilm from '../assets/icon_film.jpg';
+import iconHobi from '../assets/icon_hobi.jpg';
 
 export default function ItemCard({ item, onToggleStatus, onEdit, onDelete, onClick }) {
   const getCategoryIcon = (category) => {
@@ -15,6 +16,7 @@ export default function ItemCard({ item, onToggleStatus, onEdit, onDelete, onCli
       case 'roblox': return <img src={iconRoblox} alt="" className="item-category-icon-img" />;
       case 'komik': return <img src={iconKomik} alt="" className="item-category-icon-img" />;
       case 'film': return <img src={iconFilm} alt="" className="item-category-icon-img" />;
+      case 'hobi': return <img src={iconHobi} alt="" className="item-category-icon-img" />;
       default: return '📁';
     }
   };
@@ -50,6 +52,16 @@ export default function ItemCard({ item, onToggleStatus, onEdit, onDelete, onCli
             <span>{item.releaseYear ? `Tahun ${item.releaseYear}` : 'Film'}</span>
           </div>
         );
+      case 'hobi':
+        const formattedStart = item.startDate
+          ? new Date(item.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+          : '';
+        return formattedStart ? (
+          <div className="item-meta-item">
+            <Calendar size={12} />
+            <span>Mulai: {formattedStart}</span>
+          </div>
+        ) : null;
       default:
         return null;
     }
@@ -62,9 +74,11 @@ export default function ItemCard({ item, onToggleStatus, onEdit, onDelete, onCli
   return (
     <div className="item-card">
       <div className="item-image-wrapper" onClick={onClick}>
-        {item.image ? (
-          <img src={item.image} alt={item.name} className="item-image" loading="lazy" />
-        ) : (
+        {(item.category === 'hobi' && item.finalImage) ? (
+        <img src={item.finalImage} alt={item.name} className="item-image" loading="lazy" />
+      ) : item.image ? (
+        <img src={item.image} alt={item.name} className="item-image" loading="lazy" />
+      ) : (
           <div className="item-image-placeholder">
             <ImageIcon size={32} />
             <span>Tidak ada gambar</span>
